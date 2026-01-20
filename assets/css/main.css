@@ -3850,6 +3850,9 @@ input, select, textarea {
 	.banner-case {
 		display: block;
 	}
+}
+
+@media screen and (max-width: 400px) {
 	#header.alt .logo img {
 		display: block;
 		margin: 0 auto;

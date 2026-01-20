@@ -1,12 +1,6 @@
 @import url(fontawesome-all.min.css);
 @import 'https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400';
 
-/*
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
-*/
-
 /* variables */
 
 :root {
@@ -3133,7 +3127,7 @@ input, select, textarea {
 				#header.alt .logo img {
 					display: block;
 					margin: 0 auto;
-					max-width: 15%;
+					max-width: 40%;
 				}
 
 		@media screen and (max-width: 1280px) {
@@ -3856,6 +3850,11 @@ input, select, textarea {
 	.banner-case {
 		display: block;
 	}
+	#header.alt .logo img {
+		display: block;
+		margin: 0 auto;
+		max-width: 40%;
+	}
 }
 
 video {
@@ -3889,3 +3888,4 @@ video {
     border: 1px solid #f5f5f5;
 	box-sizing: border-box;
 }
+

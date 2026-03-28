@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador MCMV — Faixa 4</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0e0c;
+    --bg2: #181714;
+    --border: rgba(255,255,255,0.08);
+    --border-mid: rgba(255,255,255,0.15);
+    --text: #f0ece4;
+    --text-muted: #8a857a;
+    --text-faint: #4a4640;
+    --accent: #c9a84c;
+    --accent2: #e8c96a;
+    --danger: #e05a4a;
+    --warn: #e09040;
+    --ok: #6abf8a;
+    --ok-bg: rgba(106,191,138,0.1);
+    --warn-bg: rgba(224,144,64,0.1);
+    --danger-bg: rgba(224,90,74,0.12);
+    --accent-bg: rgba(201,168,76,0.08);
+    --card-bg: #181714;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --blue: #378ADD;
+    --green: #1D9E75;
+    --coral: #D85A30;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; line-height: 1.6; min-height: 100vh; }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .header { margin-bottom: 48px; }
+  .header-eyebrow { font-size: 10px; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; }
+  .header h1 { font-family: 'Fraunces', serif; font-size: clamp(28px, 5vw, 44px); font-weight: 300; line-height: 1.1; color: var(--text); margin-bottom: 8px; }
+  .header h1 em { font-style: italic; color: var(--accent2); }
+  .header p { color: var(--text-muted); font-size: 12px; max-width: 520px; line-height: 1.8; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  @media (max-width: 640px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+
+  .section { margin-bottom: 40px; }
+  .section-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); border-top: 1px solid var(--border); padding-top: 16px; margin-bottom: 20px; }
+
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color 0.2s; }
+  .card:hover { border-color: var(--border-mid); }
+
+  .metric { padding: 16px 18px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
+  .metric-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+  .metric-val { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 300; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .ctrl { margin-bottom: 18px; }
+  .ctrl-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .ctrl-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; }
+  .ctrl-val { font-size: 13px; color: var(--accent2); font-weight: 500; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: var(--border-mid); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); transition: background 0.15s, transform 0.1s; }
+  input[type=range]::-webkit-slider-thumb:hover { background: var(--accent2); transform: scale(1.2); }
+
+  .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .toggle-btn { padding: 6px 14px; border: 1px solid var(--border-mid); border-radius: 20px; background: transparent; color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent2); }
+
+  .alert { border-radius: var(--radius-sm); padding: 12px 16px; font-size: 12px; line-height: 1.7; margin-bottom: 12px; border: 1px solid transparent; display: none; }
+  .alert.visible { display: block; }
+  .alert-ok { background: var(--ok-bg); border-color: rgba(106,191,138,0.25); color: var(--ok); }
+  .alert-warn { background: var(--warn-bg); border-color: rgba(224,144,64,0.3); color: var(--warn); }
+  .alert-danger { background: var(--danger-bg); border-color: rgba(224,90,74,0.3); color: var(--danger); }
+  .alert strong { font-weight: 500; display: block; margin-bottom: 2px; }
+
+  .comp-bar-wrap { margin: 16px 0; }
+  .comp-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-faint); margin-bottom: 6px; }
+  .comp-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; position: relative; }
+  .comp-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.4s; }
+  .comp-bar-mark { position: absolute; top: -4px; bottom: -4px; width: 1px; background: rgba(255,255,255,0.2); }
+  .comp-bar-mark::after { content: '30%'; position: absolute; top: -16px; left: -10px; font-size: 9px; color: var(--text-faint); font-family: 'DM Mono', monospace; }
+
+  .cost-table { width: 100%; border-collapse: collapse; }
+  .cost-table th { text-align: left; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); padding: 8px; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .cost-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; vertical-align: top; }
+  .cost-table tr:last-child td { border-bottom: none; }
+  .cost-table tr.total-row td { color: var(--accent2); font-weight: 500; border-top: 1px solid var(--border-mid); border-bottom: none; padding-top: 14px; }
+
+  .badge { display: inline-block; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .badge-obrig { background: rgba(224,90,74,0.15); color: var(--danger); border: 1px solid rgba(224,90,74,0.25); }
+  .badge-neg { background: rgba(106,191,138,0.1); color: var(--ok); border: 1px solid rgba(106,191,138,0.2); }
+  .badge-opt { background: rgba(224,144,64,0.1); color: var(--warn); border: 1px solid rgba(224,144,64,0.2); }
+  .badge-isento { background: rgba(201,168,76,0.1); color: var(--accent2); border: 1px solid rgba(201,168,76,0.2); }
+  .cost-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .mb-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .mb-row:last-child { border-bottom: none; }
+  .mb-label { color: var(--text-muted); }
+  .mb-val { color: var(--text); }
+  .mb-val.accent { color: var(--accent2); font-weight: 500; }
+  .mb-val.danger { color: var(--danger); }
+  .mb-val.ok { color: var(--ok); }
+  .mb-val.warn { color: var(--warn); }
+
+  .check-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; cursor: pointer; }
+  .check-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .check-row label { font-size: 12px; color: var(--text-muted); cursor: pointer; }
+
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+  .footer { text-align: center; font-size: 11px; color: var(--text-faint); padding-top: 32px; border-top: 1px solid var(--border); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-in { animation: fadeUp 0.5s ease both; }
+
+  .sac-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+  @media (max-width: 640px) { .sac-grid { grid-template-columns: 1fr 1fr; } }
+
+  .sac-card { border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--border); background: var(--bg2); }
+  .sac-card.hl-blue { border-color: rgba(55,138,221,0.35); background: rgba(55,138,221,0.05); }
+  .sac-card.hl-green { border-color: rgba(29,158,117,0.35); background: rgba(29,158,117,0.05); }
+  .sac-card.hl-ok { border-color: rgba(106,191,138,0.35); background: rgba(106,191,138,0.05); }
+  .sac-card-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+  .sac-card-val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 300; line-height: 1.1; color: var(--text); }
+  .sac-card-val.c-blue { color: #7ab8f0; }
+  .sac-card-val.c-green { color: #5ddaaa; }
+  .sac-card-val.c-ok { color: var(--ok); }
+  .sac-card-val.c-warn { color: var(--warn); }
+  .sac-card-val.c-danger { color: var(--danger); }
+  .sac-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .callout { border-radius: var(--radius-sm); padding: 11px 14px; font-size: 12px; line-height: 1.7; margin-top: 10px; }
+  .callout-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(224,144,64,0.25); }
+  .callout-info { background: rgba(55,138,221,0.08); color: #7ab8f0; border: 1px solid rgba(55,138,221,0.2); }
+  .callout-ok { background: var(--ok-bg); color: var(--ok); border: 1px solid rgba(106,191,138,0.2); }
+  .callout strong { font-weight: 500; }
+
+  .legend-row { display: flex; gap: 18px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; margin-bottom: 10px; }
+  .leg-sq { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="container">
+
+  <header class="header animate-in">
+    <div class="header-eyebrow">Simulador · Minha Casa Minha Vida</div>
+    <h1>Financiamento <em>Faixa 4</em><br>Classe Média</h1>
+    <p>Parcelas, comprometimento de renda, comparativo SAC vs Price e custos de aquisição. Para casais com até R$ 12.000 de renda familiar — BH / MG.</p>
+  </header>
+
+  <!-- 01: PARÂMETROS -->
+  <section class="section animate-in">
+    <div class="section-title">01 — Parâmetros do casal</div>
+    <div class="grid-2" style="gap:20px;align-items:start;">
+      <div class="card">
+        <div class="ctrl">
+          <div class="ctrl-header"><span class="ctrl-label">Renda familiar bruta</span><span class="ctrl-val" id="v-renda">R$ 12.000</span></div>
+          <input type="range" id="renda" min="8601" max="12000" step="100" value="12000">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-header"><span class="ctrl-label">Valor do imóvel</span><span class="ctrl-val" id="v-imovel">R$ 450.000</span></div>
+          <input type="range" id="imovel" min="150000" max="600000" step="5000" value="450000">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-header"><span class="ctrl-label">Entrada</span><span class="ctrl-val" id="v-entrada-pct">20%</span></div>
+          <input type="range" id="entrada" min="10" max="50" step="5" value="20">
+          <div style="font-size:11px;color:var(--text-faint);margin-top:5px;">= <span id="v-entrada-brl">R$ 90.000</span> · Mínimo obrigatório: 20%</div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-header"><span class="ctrl-label">Prazo</span><span class="ctrl-val" id="v-prazo">35 anos</span></div>
+          <input type="range" id="prazo" min="5" max="35" step="1" value="35">
+        </div>
+      </div>
+      <div class="card">
+        <div style="margin-bottom:16px;">
+          <div class="ctrl-label" style="margin-bottom:10px;">Taxa de juros (MCMV Faixa 4)</div>
+          <div class="toggle-group" id="taxa-toggle">
+            <button class="toggle-btn active" data-val="10.5">10,5% a.a. <span style="font-size:9px;opacity:0.6">(teto)</span></button>
+            <button class="toggle-btn" data-val="9.5">9,5% a.a.</button>
+            <button class="toggle-btn" data-val="8.5">8,5% a.a.</button>
+          </div>
+        </div>
+        <div>
+          <div class="ctrl-label" style="margin-bottom:10px;">Custos mensais extras</div>
+          <div class="check-row"><input type="checkbox" id="cond-check" checked><label for="cond-check">Incluir condomínio</label></div>
+          <div class="ctrl" id="cond-ctrl">
+            <div class="ctrl-header"><span class="ctrl-label">Valor do condomínio</span><span class="ctrl-val" id="v-cond">R$ 600</span></div>
+            <input type="range" id="condominio" min="200" max="2500" step="50" value="600">
+          </div>
+          <div class="check-row"><input type="checkbox" id="seguro-check"><label for="seguro-check">Incluir seguro do imóvel (~R$ 120/mês)</label></div>
+          <div class="check-row"><input type="checkbox" id="iptu-check"><label for="iptu-check">Incluir IPTU médio (~R$ 200/mês)</label></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02: COMPROMETIMENTO -->
+  <section class="section">
+    <div class="section-title">02 — Comprometimento de renda mensal</div>
+    <div id="alert-ok" class="alert alert-ok"><strong>Dentro do limite</strong> O comprometimento total está dentro dos 30% aceitos pela Caixa. Financiamento tende a ser aprovado.</div>
+    <div id="alert-warn" class="alert alert-warn"><strong>Atenção: extras ultrapassam o limite</strong> Parcela OK, mas com condomínio e outros custos o comprometimento real passa dos 30%. Caixa aprova, mas a folga é apertada.</div>
+    <div id="alert-danger" class="alert alert-danger"><strong>Limite ultrapassado — reprovação provável</strong> A parcela compromete mais de 30% da renda bruta. Aumente a entrada, reduza o imóvel ou estenda o prazo.</div>
+
+    <div class="comp-bar-wrap">
+      <div class="comp-bar-labels"><span>0%</span><span id="pct-label" style="color:var(--text-muted);">—</span><span>50%</span></div>
+      <div class="comp-bar-bg">
+        <div class="comp-bar-fill" id="comp-bar-fill"></div>
+        <div class="comp-bar-mark" style="left:60%"></div>
+      </div>
+    </div>
+
+    <div class="grid-4" style="margin-top:20px;">
+      <div class="metric"><div class="metric-label">Parcela Price</div><div class="metric-val" id="m-parcela">—</div><div class="metric-sub">parcela fixa</div></div>
+      <div class="metric"><div class="metric-label">Total moradia/mês</div><div class="metric-val" id="m-total-mensal">—</div><div class="metric-sub">com extras</div></div>
+      <div class="metric"><div class="metric-label">% renda (parcela)</div><div class="metric-val" id="m-pct-parcela">—</div><div class="metric-sub">limite Caixa: 30%</div></div>
+      <div class="metric"><div class="metric-label">% renda (total)</div><div class="metric-val" id="m-pct-total">—</div><div class="metric-sub">real comprometido</div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px;">Detalhamento mensal</div>
+      <div id="monthly-breakdown"></div>
+    </div>
+  </section>
+
+  <!-- 03: TOTAIS -->
+  <section class="section">
+    <div class="section-title">03 — Totais do financiamento (Price)</div>
+    <div class="grid-3">
+      <div class="metric"><div class="metric-label">Valor financiado</div><div class="metric-val" id="m-financiado">—</div><div class="metric-sub" id="m-financiado-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Total pago</div><div class="metric-val" id="m-total-pago">—</div><div class="metric-sub">em <span id="m-prazo-anos">—</span> anos</div></div>
+      <div class="metric"><div class="metric-label">Juros pagos no total</div><div class="metric-val" id="m-juros-total">—</div><div class="metric-sub">custo do crédito</div></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- 04: SAC VS PRICE -->
+  <section class="section">
+    <div class="section-title">04 — SAC vs Price: qual escolher?</div>
+
+    <div class="grid-2" style="gap:16px;margin-bottom:20px;">
+      <div class="card" style="border-color:rgba(55,138,221,0.25);">
+        <div style="font-size:11px;color:#7ab8f0;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Price — parcela fixa</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">Parcela igual do 1º ao último mês. Nos primeiros anos a maior parte é juros — amortiza pouco principal. Aprovação mais fácil na Caixa. Custo total de juros maior.</div>
+      </div>
+      <div class="card" style="border-color:rgba(29,158,117,0.25);">
+        <div style="font-size:11px;color:#5ddaaa;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">SAC — parcela decrescente</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">Amortização do principal constante todo mês; juros caem progressivamente. 1ª parcela maior que o Price — precisa caber nos 30% da renda. Dívida cai mais rápido, custo total de juros menor.</div>
+      </div>
+    </div>
+
+    <div class="sac-grid" id="sac-metrics"></div>
+    <div id="sac-callout"></div>
+
+    <div class="legend-row" style="margin-top:20px;">
+      <span><span class="leg-sq" style="background:#378ADD"></span>Price</span>
+      <span><span class="leg-sq" style="background:#1D9E75"></span>SAC — parcela</span>
+      <span><span class="leg-sq" style="background:rgba(29,158,117,0.55)"></span>SAC — amortização</span>
+      <span><span class="leg-sq" style="background:rgba(216,90,48,0.7)"></span>SAC — juros</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px;">Evolução da parcela mensal ao longo do financiamento</div>
+    <div style="position:relative;width:100%;height:260px;"><canvas id="chart-parcelas"></canvas></div>
+
+    <div style="font-size:11px;color:var(--text-faint);margin:22px 0 8px;">Composição da parcela SAC mês a mês: amortização (verde) + juros (coral)</div>
+    <div style="position:relative;width:100%;height:200px;"><canvas id="chart-composicao"></canvas></div>
+
+    <div class="callout callout-info" style="margin-top:14px;">
+      No Price você paga mais juros no total, mas a parcela cabe melhor desde o início. No SAC a 1ª parcela é maior, porém a dívida cai mais rápido e o custo total de juros é menor. <strong>Se a 1ª parcela SAC couber nos 30% da renda, o SAC é a escolha mais vantajosa.</strong>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- 05: CUSTOS -->
+  <section class="section">
+    <div class="section-title">05 — Custos de aquisição (desembolso inicial)</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.8;">Esses valores são pagos <strong style="color:var(--text);">à vista</strong>, fora da entrada. Planeje-os como reserva separada — não entram nas parcelas.</p>
+
+    <div class="grid-2" style="gap:20px;align-items:start;">
+      <div class="card">
+        <div style="margin-bottom:16px;">
+          <div class="ctrl-label" style="margin-bottom:10px;">Tipo de imóvel</div>
+          <div class="toggle-group" id="tipo-toggle">
+            <button class="toggle-btn active" data-val="novo">Imóvel novo</button>
+            <button class="toggle-btn" data-val="usado">Imóvel usado</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-header"><span class="ctrl-label">Corretagem % negociada</span><span class="ctrl-val" id="v-corr">6%</span></div>
+          <input type="range" id="corretagem" min="0" max="8" step="0.5" value="6">
+          <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Legalmente é do vendedor. Negocie antes de assinar.</div>
+        </div>
+        <div class="check-row"><input type="checkbox" id="despachante-check"><label for="despachante-check">Incluir despachante (~R$ 2.000)</label></div>
+        <div class="check-row"><input type="checkbox" id="vistoria-check" checked><label for="vistoria-check">Incluir laudo de vistoria (~R$ 500)</label></div>
+      </div>
+      <div class="card">
+        <table class="cost-table" id="cost-table"></table>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="metric"><div class="metric-label">Custos obrigatórios</div><div class="metric-val" id="c-obrig">—</div><div class="metric-sub" id="c-obrig-pct">—</div></div>
+      <div class="metric"><div class="metric-label">Total com todos os itens</div><div class="metric-val" id="c-total">—</div><div class="metric-sub" id="c-total-pct">—</div></div>
+      <div class="metric" style="border-color:rgba(201,168,76,0.3);"><div class="metric-label">Reserva sugerida</div><div class="metric-val" id="c-reserva" style="color:var(--accent2);">—</div><div class="metric-sub">entrada + custos + 10% margem</div></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <footer class="footer">
+    Simulador educacional — valores estimados. Taxas e custos podem variar.<br>
+    Confirme sempre com a Caixa Econômica Federal e cartório local.<br>
+    <span style="color:var(--accent);margin-top:6px;display:inline-block;">MCMV Faixa 4 · BH / Minas Gerais · 2025–2026</span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const fmtBRL = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+const fmtPct = (v, dec=1) => Number(v).toFixed(dec).replace('.',',') + '%';
+const fmtK = v => 'R$ ' + Math.round(v/1000) + 'k';
+
+let taxa = 10.5, tipoImovel = 'novo';
+let chartP = null, chartC = null;
+
+const get = id => document.getElementById(id);
+
+function calcPrice(pv, r, n) {
+  const p = r === 0 ? pv/n : pv*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+  let s = pv, rows = [];
+  for (let i = 0; i < n; i++) {
+    const j = s*r, a = p-j;
+    s = Math.max(s-a, 0);
+    rows.push({ parcela: p, juros: j, amort: a, saldo: s });
+  }
+  return rows;
+}
+
+function calcSAC(pv, r, n) {
+  const a = pv/n;
+  let s = pv, rows = [];
+  for (let i = 0; i < n; i++) {
+    const j = s*r, p = a+j;
+    s = Math.max(s-a, 0);
+    rows.push({ parcela: p, juros: j, amort: a, saldo: s });
+  }
+  return rows;
+}
+
+function calcAll() {
+  const renda = +get('renda').value;
+  const imovelVal = +get('imovel').value;
+  const entradaPct = +get('entrada').value / 100;
+  const prazoAnos = +get('prazo').value;
+  const n = prazoAnos * 12;
+  const r = taxa / 100 / 12;
+  const inclCond = get('cond-check').checked;
+  const condVal = inclCond ? +get('condominio').value : 0;
+  const inclSeguro = get('seguro-check').checked;
+  const inclIPTU = get('iptu-check').checked;
+  const corrPct = +get('corretagem').value / 100;
+  const inclDesp = get('despachante-check').checked;
+  const inclVist = get('vistoria-check').checked;
+  const entradaVal = Math.round(imovelVal * entradaPct);
+  const pv = imovelVal - entradaVal;
+
+  get('v-renda').textContent = 'R$ ' + renda.toLocaleString('pt-BR');
+  get('v-imovel').textContent = 'R$ ' + imovelVal.toLocaleString('pt-BR');
+  get('v-entrada-pct').textContent = fmtPct(entradaPct*100, 0);
+  get('v-entrada-brl').textContent = fmtBRL(entradaVal);
+  get('v-prazo').textContent = prazoAnos + ' ano' + (prazoAnos > 1 ? 's' : '');
+  get('v-cond').textContent = fmtBRL(+get('condominio').value);
+  get('v-corr').textContent = fmtPct(corrPct*100);
+  get('cond-ctrl').style.opacity = inclCond ? '1' : '0.3';
+  get('cond-ctrl').style.pointerEvents = inclCond ? '' : 'none';
+
+  const priceRows = calcPrice(pv, r, n);
+  const sacRows = calcSAC(pv, r, n);
+  const parcelaPrice = priceRows[0].parcela;
+  const totalPrice = priceRows.reduce((s,x) => s+x.parcela, 0);
+  const jurosPrice = totalPrice - pv;
+  const parcelaSAC1 = sacRows[0].parcela;
+  const parcelaSACFim = sacRows[n-1].parcela;
+  const totalSAC = sacRows.reduce((s,x) => s+x.parcela, 0);
+  const jurosSAC = totalSAC - pv;
+  const economia = jurosPrice - jurosSAC;
+
+  // --- Seção 02 ---
+  const seguro = inclSeguro ? 120 : 0;
+  const iptu = inclIPTU ? 200 : 0;
+  const totalMensal = Math.round(parcelaPrice) + condVal + seguro + iptu;
+  const pctP = (parcelaPrice / renda) * 100;
+  const pctT = (totalMensal / renda) * 100;
+  const limite = renda * 0.30;
+
+  get('m-parcela').textContent = fmtBRL(parcelaPrice);
+  get('m-total-mensal').textContent = fmtBRL(totalMensal);
+  get('m-pct-parcela').textContent = fmtPct(pctP);
+  get('m-pct-parcela').style.color = pctP > 30 ? 'var(--danger)' : pctP > 27 ? 'var(--warn)' : 'var(--ok)';
+  get('m-pct-total').textContent = fmtPct(pctT);
+  get('m-pct-total').style.color = pctT > 30 ? 'var(--danger)' : pctT > 27 ? 'var(--warn)' : 'var(--ok)';
+
+  get('comp-bar-fill').style.width = Math.min(pctP/50*100, 100) + '%';
+  get('comp-bar-fill').style.background = pctP > 30 ? 'var(--danger)' : pctP > 27 ? 'var(--warn)' : 'var(--ok)';
+  get('pct-label').textContent = fmtPct(pctP) + ' da renda comprometida c/ parcela Price';
+
+  const aOk = get('alert-ok'), aWarn = get('alert-warn'), aDanger = get('alert-danger');
+  aOk.classList.remove('visible'); aWarn.classList.remove('visible'); aDanger.classList.remove('visible');
+  if (pctP > 30) aDanger.classList.add('visible');
+  else if (pctT > 30) {
+    aWarn.classList.add('visible');
+    aWarn.innerHTML = `<strong>Atenção: extras ultrapassam o limite</strong> Parcela (${fmtPct(pctP)}) dentro dos 30%, mas somando condomínio e outros custos o comprometimento real chega a <strong>${fmtPct(pctT)}</strong>. A Caixa aprova, mas a folga mensal é apertada.`;
+  } else aOk.classList.add('visible');
+
+  const mbRows = [{ l: 'Parcela Price', v: Math.round(parcelaPrice), c: 'accent' }];
+  if (inclCond) mbRows.push({ l: 'Condomínio', v: condVal, c: Math.round(parcelaPrice)+condVal > limite ? 'warn' : '' });
+  if (inclSeguro) mbRows.push({ l: 'Seguro do imóvel', v: seguro, c: '' });
+  if (inclIPTU) mbRows.push({ l: 'IPTU (rateio mensal)', v: iptu, c: '' });
+  mbRows.push({ l: 'Total moradia', v: totalMensal, c: pctT > 30 ? 'danger' : 'ok', bold: true });
+  mbRows.push({ l: 'Renda restante', v: renda - totalMensal, c: renda-totalMensal < 0 ? 'danger' : '', bold: true });
+  mbRows.push({ l: 'Limite máximo parcela (30%)', v: Math.round(limite), c: '' });
+  get('monthly-breakdown').innerHTML = mbRows.map(r => `
+    <div class="mb-row">
+      <span class="mb-label"${r.bold?' style="color:var(--text)"':''}>${r.l}</span>
+      <span class="mb-val ${r.c}">${fmtBRL(r.v)}</span>
+    </div>`).join('');
+
+  // --- Seção 03 ---
+  get('m-financiado').textContent = fmtBRL(pv);
+  get('m-financiado-sub').textContent = fmtPct(100-entradaPct*100, 0) + '% do valor';
+  get('m-total-pago').textContent = fmtBRL(totalPrice);
+  get('m-juros-total').textContent = fmtBRL(jurosPrice);
+  get('m-prazo-anos').textContent = prazoAnos;
+
+  // --- Seção 04: SAC vs Price ---
+  const pctSAC1 = (parcelaSAC1 / renda) * 100;
+  const sacViavel = pctSAC1 <= 30;
+  const difInicio = parcelaSAC1 - parcelaPrice;
+
+  get('sac-metrics').innerHTML = `
+    <div class="sac-card hl-blue">
+      <div class="sac-card-label">1ª parcela Price</div>
+      <div class="sac-card-val c-blue">${fmtBRL(parcelaPrice)}</div>
+      <div class="sac-card-sub">fixa · ${fmtPct(pctP)} da renda</div>
+    </div>
+    <div class="sac-card hl-green">
+      <div class="sac-card-label">1ª parcela SAC</div>
+      <div class="sac-card-val ${sacViavel ? 'c-green' : 'c-warn'}">${fmtBRL(parcelaSAC1)}</div>
+      <div class="sac-card-sub">+${fmtBRL(difInicio)} vs Price · ${fmtPct(pctSAC1)} da renda</div>
+    </div>
+    <div class="sac-card">
+      <div class="sac-card-label">Última parcela SAC</div>
+      <div class="sac-card-val c-ok">${fmtBRL(parcelaSACFim)}</div>
+      <div class="sac-card-sub">ao final de ${prazoAnos} anos</div>
+    </div>
+    <div class="sac-card hl-ok">
+      <div class="sac-card-label">Economia SAC vs Price</div>
+      <div class="sac-card-val c-ok">${fmtBRL(economia)}</div>
+      <div class="sac-card-sub">em juros totais</div>
+    </div>`;
+
+  get('sac-callout').innerHTML = sacViavel
+    ? `<div class="callout callout-ok"><strong>SAC viável com sua renda</strong> — A 1ª parcela SAC (${fmtBRL(parcelaSAC1)}) compromete ${fmtPct(pctSAC1)} da renda, dentro dos 30%. Você economizaria ${fmtBRL(economia)} em juros versus o Price. Recomendado se houver reserva para os primeiros meses mais pesados.</div>`
+    : `<div class="callout callout-warn"><strong>SAC: 1ª parcela acima dos 30%</strong> — A 1ª parcela SAC (${fmtBRL(parcelaSAC1)}) compromete ${fmtPct(pctSAC1)} da renda. A Caixa usará o Price para aprovação. Para viabilizar o SAC, aumente a entrada ou reduza o valor do imóvel.</div>`;
+
+  // Gráficos
+  const step = Math.max(1, Math.floor(n/60));
+  const labels = [], priceD = [], sacD = [], sacJ = [], sacA = [];
+  for (let i = 0; i < n; i += step) {
+    labels.push('Ano ' + Math.ceil((i+1)/12));
+    priceD.push(Math.round(priceRows[i].parcela));
+    sacD.push(Math.round(sacRows[i].parcela));
+    sacJ.push(Math.round(sacRows[i].juros));
+    sacA.push(Math.round(sacRows[i].amort));
+  }
+
+  const axCfg = {
+    x: { ticks: { color: '#5a5550', font: { size: 10, family: 'DM Mono' }, maxTicksLimit: 9 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+    y: { ticks: { color: '#5a5550', font: { size: 10, family: 'DM Mono' }, callback: v => fmtK(v) }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  };
+
+  if (chartP) chartP.destroy();
+  chartP = new Chart(get('chart-parcelas'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Price', data: priceD, borderColor: '#378ADD', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+      { label: 'SAC', data: sacD, borderColor: '#1D9E75', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtBRL(c.raw) } } }, scales: axCfg }
+  });
+
+  if (chartC) chartC.destroy();
+  chartC = new Chart(get('chart-composicao'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Amortização', data: sacA, backgroundColor: 'rgba(29,158,117,0.65)', stack: 's' },
+      { label: 'Juros', data: sacJ, backgroundColor: 'rgba(216,90,48,0.7)', stack: 's' },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtBRL(c.raw) } } },
+      scales: { x: { stacked: true, ...axCfg.x, grid: { display: false } }, y: { stacked: true, ...axCfg.y } }
+    }
+  });
+
+  // --- Seção 05 ---
+  const itbi = tipoImovel === 'novo' ? 0 : imovelVal * 0.025;
+  const registro = imovelVal * 0.010;
+  const itens = [
+    { nome: 'ITBI', valor: itbi, tipo: tipoImovel==='novo'?'isento':'obrig', desc: tipoImovel==='novo'?'Imóvel novo MCMV — verificar isenção na PBH. Não incluído no cálculo aqui.':'Alíquota BH: 2,5%. Pago antes do registro em cartório.', obrig: tipoImovel!=='novo' },
+    { nome: 'Escritura pública', valor: 0, tipo: 'isento', desc: 'Dispensada no financiamento Caixa. O contrato substitui a escritura. Economia de ~1,5% do imóvel.', obrig: false },
+    { nome: 'Registro em cartório', valor: registro, tipo: 'obrig', desc: 'Tabela TJMG (~1% do imóvel). Torna você o proprietário legal.', obrig: true },
+    { nome: 'Certidões do vendedor', valor: 600, tipo: 'obrig', desc: 'Negativas de débito, matrícula atualizada, IPTU. Média: R$ 600.', obrig: true },
+    { nome: 'Laudo de vistoria', valor: inclVist?500:0, tipo: 'opt', desc: 'Laudo técnico independente. Não obrigatório, mas recomendado.', obrig: false },
+    { nome: 'Corretagem', valor: imovelVal*corrPct, tipo: 'neg', desc: 'Legalmente é do vendedor. Negocie antes de assinar a proposta.', obrig: false },
+    { nome: 'Despachante', valor: inclDesp?2000:0, tipo: 'opt', desc: 'Cuida dos trâmites burocráticos. Opcional.', obrig: false },
+  ];
+  const obrigTotal = itens.filter(i=>i.obrig).reduce((s,i)=>s+i.valor,0);
+  const totalCustos = itens.reduce((s,i)=>s+i.valor,0);
+  const bMap = { obrig:'badge-obrig', neg:'badge-neg', opt:'badge-opt', isento:'badge-isento' };
+  const bLbl = { obrig:'Obrigatório', neg:'Negociável', opt:'Opcional', isento:'Isento/dispensado' };
+
+  get('cost-table').innerHTML = `
+    <thead><tr><th>Item</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>
+    ${itens.map(i=>`<tr>
+      <td><div style="color:var(--text);font-weight:${i.obrig?500:400}">${i.nome}</div><div class="cost-desc">${i.desc}</div></td>
+      <td><span class="badge ${bMap[i.tipo]}">${bLbl[i.tipo]}</span></td>
+      <td style="text-align:right;color:${i.valor===0?'var(--text-faint)':'var(--text)'};white-space:nowrap">${i.valor===0?'—':fmtBRL(i.valor)}</td>
+    </tr>`).join('')}
+    <tr class="total-row"><td colspan="2">Total custos de aquisição</td><td style="text-align:right;white-space:nowrap">${fmtBRL(totalCustos)}</td></tr>
+    </tbody>`;
+
+  get('c-obrig').textContent = fmtBRL(obrigTotal);
+  get('c-obrig-pct').textContent = fmtPct(obrigTotal/imovelVal*100) + ' do imóvel';
+  get('c-total').textContent = fmtBRL(totalCustos);
+  get('c-total-pct').textContent = fmtPct(totalCustos/imovelVal*100) + ' do imóvel';
+  get('c-reserva').textContent = fmtBRL((entradaVal + totalCustos) * 1.1);
+}
+
+['renda','imovel','entrada','prazo','condominio','corretagem'].forEach(id => get(id).addEventListener('input', calcAll));
+['cond-check','seguro-check','iptu-check','despachante-check','vistoria-check'].forEach(id => get(id).addEventListener('change', calcAll));
+
+get('taxa-toggle').querySelectorAll('.toggle-btn').forEach(btn => btn.addEventListener('click', () => {
+  get('taxa-toggle').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); taxa = +btn.dataset.val; calcAll();
+}));
+get('tipo-toggle').querySelectorAll('.toggle-btn').forEach(btn => btn.addEventListener('click', () => {
+  get('tipo-toggle').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); tipoImovel = btn.dataset.val; calcAll();
+}));
+
+calcAll();
+</script>
+</body>
+</html>

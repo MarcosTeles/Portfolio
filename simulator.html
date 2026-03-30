@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulador MCMV</title>
+<title>Simulador MCMV — Faixa 4</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -208,7 +208,7 @@
 <div class="noise"></div>
 <div class="container">
 
-  <header class="header animate-in">
+   <header class="header animate-in">
     <div class="header-eyebrow">Simulador</div>
     <h1>Financiamento <em> · Minha Casa Minha Vida</em></h1>
     <p>Parcelas, comprometimento de renda, comparativo SAC vs Price e custos de aquisição — BH / MG.</p>
@@ -221,7 +221,7 @@
       <div class="card">
         <div class="ctrl">
           <div class="ctrl-header"><span class="ctrl-label">Renda familiar bruta</span><span class="ctrl-val" id="v-renda">R$ 12.000</span></div>
-          <input type="range" id="renda" min="8601" max="12000" step="100" value="12000">
+          <input type="range" id="renda" min="8601" max="13000" step="100" value="12000">
         </div>
         <div class="ctrl">
           <div class="ctrl-header"><span class="ctrl-label">Valor do imóvel</span><span class="ctrl-val" id="v-imovel">R$ 450.000</span></div>
@@ -597,7 +597,7 @@ function calcAll() {
 
   // Seção 03
   get('m-financiado').textContent = fmtBRL(pv);
-  get('m-financiado-sub').textContent = fmtPct(100-entradaPct*100, 0) + ' do valor do imóvel';
+  get('m-financiado-sub').textContent = fmtPct(100-entradaPct*100, 0) + '% do valor do imóvel';
   get('m-total-pago').textContent = fmtBRL(totalPagoAtivo);
   get('m-juros-total').textContent = fmtBRL(jurosAtivo);
   get('m-prazo-anos').textContent = prazoAnos;
